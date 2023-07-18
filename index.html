@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Book Search Results</title>
+  <!-- Include jQuery and Moustache.js libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.2.0/mustache.min.js" defer></script>
+</head>
+<body>
+  <h1>Book Search Results</h1>
+  <div>
+    <label for="searchBox">Enter Search Terms:</label>
+    <input type="text" id="searchBox" />
+    <button id="searchBtn">Search</button>
+  </div>
+  <div id="resultsContainer">
+    <!-- Results will be rendered here -->
+  </div>
+  <div id="pagination">
+    <!-- Pagination links will be rendered here -->
+  </div>
+
+  <script defer>
+    // Function to handle the book search
+    function searchBooks(query, pageNumber) {
+      const maxResults = 10;
+      const startIndex = (pageNumber - 1) * maxResults;
+
+      const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=${maxResults}&startIndex=${startIndex}&key=AIzaSyAe0YhODnP0YFxa5IuuCpU_dGe5g5K94HQ`;
+
+      $.getJSON(apiUrl)
+        .done(function (data) {
+          const template = $('#book-template').html();
+          const rendered = Mustache.render(template, { books: data.items });
+          $('#resultsContainer').html(rendered);
+
+          renderPagination(data.totalItems, pageNumber);
+        })
+        .fail(function (jqxhr, textStatus, error) {
+          const err = `${textStatus}, ${error}`;
+          console.log(`Request Failed: ${err}`);
+        });
+    }
+
+    // Function to render pagination links
+    function renderPagination(totalResults, currentPage) {
+      const maxResultsPerPage = 10;
+      const totalPages = Math.ceil(totalResults / maxResultsPerPage);
+
+      let paginationHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+          paginationHTML += `<span>${i}</span>`;
+        } else {
+          paginationHTML += `<a href="#" onclick="searchBooks($('#searchBox').val(), ${i})">${i}</a>`;
+        }
+      }
+
+      $('#pagination').html(paginationHTML);
+    }
+
+    $(document).ready(function () {
+      // Template for rendering book results
+      const bookTemplate = `
+        {{#books}}
+          <div>
+            <h2>{{volumeInfo.title}}</h2>
+            <p>Author: {{volumeInfo.authors}}</p>
+            <p>Published Date: {{volumeInfo.publishedDate}}</p>
+          </div>
+        {{/books}}
+      `;
+      $('#book-template').html(bookTemplate);
+
+      // Search button click event
+      $('#searchBtn').on('click', function () {
+        const query = $('#searchBox').val();
+        searchBooks(query, 1); // Start from the first page
+      });
+    });
+  </script>
+
+</body>
+</html>
+
